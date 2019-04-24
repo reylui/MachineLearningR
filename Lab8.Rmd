@@ -1,0 +1,94 @@
+---
+title: "Lab8"
+author: "Luis J. Ramirez"
+date: "March 13, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lab 8
+
+### COllecting the data
+
+This lab is using concrete data to predict the performance of a building material. We will use a ANN in an attempt to model this data. This data is from the UCI Machine Learning Repository, where I-Cheng Yeh found success in using neural networks to build models. We will attempt to replicate his work, the data set contains 1030 examples of concrete with eight feature components used in the mixture. These features are used related to the final comprehensive strength. 
+
+1. Downloading the data set. 
+
+```{r, echo=TRUE}
+concrete <- read.csv("C:/Users/LuisJ/OneDrive/Desktop/RCode/MachineLearningR/data sets/concrete.csv")
+```
+
+2. We look into the structure of the data set
+
+```{r, echo = TRUE}
+str(concrete)
+```
+All the observations are numerical. To prepare the data we scale all the data between zero and one. We want to normalize the data, this helps the ANN run more efficiently. 
+
+3. Normaliing the data. Using the **BBmisc** package
+
+```{r, echo = TRUE}
+library(BBmisc)
+
+concrete <- normalize(concrete, method = "range", range = c(0,1))
+```
+4. Now we partition the data into 75% training and 25% test
+
+```{r, echo = TRUE}
+
+train_sample <- sample(1030, floor(1030 * .75) )
+
+concrete_train <- concrete[train_sample, ]
+concrete_test <- concrete[-train_sample, ]
+```
+
+### Training a model on the data. 
+
+We download the **neuralnet** package because it provides an easy to use implementaion of such networks. We can also plot the network topology. 
+
+5. Install and load the package
+ 
+```{r, echo = TRUE}
+#install.package("neuralnet")
+library(neuralnet)
+```
+6. Traing the model
+ 
+```{r, echo = TRUE}
+set.seed(12345)
+concrete_model <- neuralnet(strength ~., data = concrete, hidden = 2)
+```
+
+7. Plotting the model
+```{r, echo = TRUE}
+
+plot(concrete_model, rep = "best")
+
+```
+
+### Evaluating model performance
+8. Using the compute model to predict the test data
+```{r, echo = TRUE}
+predict <-compute(concrete_model, concrete_test)
+
+
+```
+
+9. Meaning of the values 
+
+```{r, echo = TRUE}
+results <- predict$net.result
+neurons <- predict$neurons
+```
+
+10. Getting the correlation and explaining the results.
+
+```{r, echo = TRUE }
+cor(results, concrete_test$strength)
+```
+11. 
+
+ 
