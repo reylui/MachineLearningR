@@ -1,0 +1,146 @@
+---
+title: "Lab 3"
+author: "Luis J. Ramirez"
+date: "January 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Lab 3
+
+(1). Importing the data..
+```{r, cache = TRUE}
+wbcd <- read.csv("C:\\Users\\LuisJ\\Dropbox\\MachineLearningR\\data sets\\wisc_bc_data.csv", stringsAsFactors =  FALSE)
+```
+
+(2). We note that there are a total of 32 factors and 569 observations.
+```{r, echo = TRUE}
+str(wbcd)
+
+```
+(3). Of these factors we find that the patient **id** number will have no correlation to the diagnosis of cancer. To drop the column we use the following line: 
+```{r, echo = TRUE}
+#wbcd2 <- subset(wbcd, select = -c(id))
+wbcd <- wbcd[-1]
+```
+
+(4)/(5). The variable is **diagnosis** and we note that R already turned this into a factor of **M** or **B**, being malignant or benign respectively. To show the percentages of the corresponding diagnosis we using the following set of lines. We also transform this nominal variable into a factor.
+
+```{r, echo = TRUE}
+table(wbcd$diagnosis)
+
+wbcd$diagnosis <- factor(wbcd$diagnosis, levels = c("B", "M"), labels = c("Benign", "Malignant"))
+
+# table or porpotions with more informative lables
+
+round(prop.table(table(wbcd$diagnosis)) * 100, digits = 1)
+```
+
+## Transformation - normalizing numeric data
+
+(6)/(7). We take a look at the summaries for **radius_mean**, **area_mean**, and **smoothness_mean**. And we notice that that the data is not normalize, which is a problem for K-NN
+
+```{r, echo=TRUE}
+summary(wbcd[c("radius_mean", "area_mean", "smoothness_mean")])
+```
+(8). creating the normalizing function and testing it with a Poisson distributed values. 
+```{r, includ = TRUE}
+normalize <- function(x) {
+  return ((x - min(x))/(max(x) - min(x)))
+}
+```
+
+```{r, echo = TRUE}
+x1 <- rpois(n = 50, lambda = 10)
+x1 <-normalize(x1)
+```
+(9)/(10). We will apply the normalization feature to each variable in the data frame by using the following. We check if it works by using **summary**.
+
+```{r, echo= TRUE}
+wbcd_n <- as.data.frame(lapply(wbcd[2:31], normalize))
+
+summary(wbcd_n$area_mean)
+```
+
+## Data Preperation - creating training data and test datasets
+
+(11). We will sort our training and label data as follows, **wbcd_train** and **wbcd_test**.
+
+```{r, echo = TRUE}
+wbcd_train <- wbcd_n[1:469, ]
+wbcd_test <- wbcd_n[470:569, ]
+```
+
+12. Storing the labels separately 
+
+```{r, echo = TRUE}
+wbcd_train_labels <- wbcd[1:469, 1]
+wbcd_test_labels <- wbcd[470:569, 1]
+```
+
+## Training a model on the data
+
+13. We install the **class** package by using the following command, we can also do it from the tools tab in R-Studio.
+
+```{r, echo= TRUE}
+#install.packages("class");
+
+library(class)
+```
+
+14. Since the training sample is of size 469, we will try the approximation to **k** = $\sqrt{469} \approx 21$. 
+
+15. Here we specify the parameters for kn and train the model, the result vector is **wbcd_test_pred**
+
+```{r, echo = TRUE}
+wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test,
+                      cl = wbcd_train_labels, k=21)
+```
+
+## Evaluating model performance
+
+16. To compare the two categorical variables we will use cross table from the gmodels library
+
+```{r, echo= TRUE}
+#Loading the gmodels library
+library(gmodels)
+
+#Creating the cross tabulaion of predicted vs. actual
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred, prop.chisq = FALSE)
+```
+17. We have that 98 percent of the masses were correctly labeled by K-NN. 
+
+18. This table indicates the proportion of values that fall into four categories: true positive, true negative. false positive and false negative. 
+
+* The top-left cell indicates the **true-negative** results. These 61 of 100 values are cases where the mass was benign and the k-NN algorithm correctly indemnified it as such. 
+
+* The bottom-right cell indicated the **true-positive** results, where the classifier and the clinically determined label agree that the mass is malignant. A total of 37 of 100 predictions were true positives. 
+
+The cells on the diagonals contain counts of example where the K-NN approach disagreed with the true label. 
+
+* The two examples in the lower-left cell are **false-negative** results; in this case, the predicted value was benign, but the tumor was actually malignant. Errors in this direction could be extremely costly as they might lead a patient to believe she is cancer free, but in reality, the disease may continue to spread. 
+
+* The top-right cell contains the **false-positve**; cases where the cancer is classified and malignant but is really benign. Although this is considerably better news, this could lead to additional test and unnecessary expenses. 
+
+19. Although we have 98 percent accuracy for some basic R code, we will try another iteration of the model to see whether we can improve the performance and reduce the number of values that have been incorrectly classified.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

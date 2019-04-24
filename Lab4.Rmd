@@ -1,0 +1,205 @@
+---
+title: "Assingment 4"
+author: "Luis Jose Ramirez"
+date: "February 20, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lab4/Assingment 4
+
+This dataset includes the text of SMS messages along with a label indicating whether the message is unwanted. Junk messages are labeled spam, while legitimate messages are labeled ham.
+
+Some examples of spam and ham are shown in the following:
+
+Sample SMS ham
+
+*Better. Made up for Friday and stuffed myself like a pig yesterday. Now I feel bleh. But, at least, its not writhing pain kind of bleh.
+
+*If he started searching, he will get job in few days. He has great potential and talent.
+
+*I got another job! The one at the hospital, doing data analysis or something, starts on Monday! Not sure when my thesis will finish.
+
+Sample SMS spam
+
+*Congratulations ur awarded 500 of CD vouchers or 125 gift guaranteed & Free entry 2 100 wkly draw txt MUSIC to 87066.
+
+*December only! Had your mobile 11mths+? You are entitled to update to the latest colour camera mobile for Free! Call The Mobile Update Co FREE on 08002986906.
+
+*Valentines Day Special! Win over £1000 in our quiz and take your partner on the trip of a lifetime! Send GO to 83600 now. 150 p/msg rcvd.
+
+**1. Looking at the previous real text messages, did you notice any distinguishing characteristics of spam? Explain.**
+
+We notice that in spam, there is poor grammer and a lot of special characters. Additionally there are numerical values that could be cash, phone numbers or dates.
+
+**2. Import and read the csv data file, name it sms_raw. **
+
+```{r, echo=TRUE, cache= TRUE}
+sms_raw <- read.csv("C:\\Users\\LuisJ\\OneDrive\\Desktop\\RCode\\MachineLearningR\\data sets\\sms_spam.csv", stringsAsFactors =  FALSE)
+
+```
+
+**3. Examine the structure of the sms_raw data frame.**
+
+```{r, include = TRUE}
+str(sms_raw)
+```
+
+**4. Find the target variable. How many levels this variable have?**
+The target variable is type, which has two levels "ham" or "spam".
+
+**5. Transform this target variable into factor. What is the number of observations in each level of the target variable?**
+```{r, echo=TRUE}
+sms_raw$type <- as.factor(sms_raw$type)
+
+table(sms_raw$type)
+```
+we have a total of 5559 observations, of which 4812 are ham and 747 are spam
+
+**6. How to install and Load the tm package?**
+```{r, echo= TRUE}
+
+library(tm)
+```
+
+
+**7. Using the print function on the sms_corpus, how many documents this corpus have?**
+```{r, echo= TRUE}
+sms_corpus <- Corpus(VectorSource(sms_raw$text))
+print(sms_corpus)
+inspect(sms_corpus[1:2])
+as.character(sms_corpus[[1]])
+```
+There are 5559 documents in the corpus.
+
+**8. How to view multiple documents/messages in the sms_corpus? Let's say the first 3 documents text. (Tip use the lapply() function).**
+
+```{r, echo = TRUE}
+corpus_clean <- tm_map(sms_corpus, tolower)
+
+lapply(corpus_clean[1:3], as.character)
+```
+
+**9. To check whether the command worked, let's inspect the first message in the original corpus and compare it to the same in the transformed corpus. How to check those results?**
+
+```{r, echo = FALSE}
+lapply(sms_corpus[1:3], as.character)
+```
+We notice that everyletter has changed to a lowercase in the **corpus_clean* documents
+
+**10. Write the code to remove numbers. (Tip similar to the lower case)**
+```{r, echo = TRUE}
+corpus_clean <- tm_map(corpus_clean, removeNumbers)
+```
+**11. Write the appropriate code that remove punctuation using the tm_map() function.**
+We will also remove filler words 
+
+```{r, echo = TRUE}
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords())
+corpus_clean <- tm_map(corpus_clean, removePunctuation)
+```
+```{r, echo = TRUE}
+library(SnowballC)
+corpus_clean <- tm_map(corpus_clean, stemDocument)
+corpus_clean <- tm_map(corpus_clean, stripWhitespace)
+```
+**12. Check if the cleaning is working correctely by comparing the 5th document before and after cleaning.**
+
+```{r, echo = TRUE}
+lapply(sms_corpus[5], as.character)
+lapply(corpus_clean[5], as.character)
+
+```
+
+```{r, echo = TRUE}
+sms_dtm <- DocumentTermMatrix(corpus_clean)
+
+#additional method to cleaning all the text
+
+#sms_dtm2 <- DocumentTermMatrix(sms_corpus, control = list(tolower = TRUE, removeNumbers = TRUE, stopwords = TRUE, removePunctuation = TRUE, stemming = TRUE))
+
+```
+
+**13. Split the sms_dtm into training and test sets. Name the first sms_dtm_train and the second sms_dtm_test.**
+```{r, echo = TRUE}
+sms_dtm_train <- sms_dtm[1:4447, ]
+sms_dtm_test <- sms_dtm[4448:5559, ]
+```
+**14. Store the correspondents target variable in 2 separate vectors. Name it sms_train_labels and sms_test_labels.**
+
+```{r, echo = TRUE}
+sms_train_labels <- sms_raw$type[1:4447]
+sms_test_labels <- sms_raw$type[4448:5559]
+prop.table(table(sms_train_labels))
+prop.table(table(sms_test_labels))
+```
+
+**15. Create word cloud of the clean corpus using the min.freq= 50 and the random.order = FALSE.**
+```{r, echo=TRUE}
+library(wordcloud)
+wordcloud(corpus_clean, min.freq = 50, random.order = FALSE)
+```
+
+```{r, echo = TRUE}
+spam <- subset(sms_raw, type == "spam")
+
+ham <- subset(sms_raw, type == "ham")
+
+#wordcloud(spam$text, max.words = 40, scale = c(3, 0.5))
+
+wordcloud(ham$text, max.words = 40, scale = c(3, 0.5))
+```
+
+**16. What information those 2 word clouds, the spam and ham cloud, are providing?**
+The word clouds provide the most common words in a email that identify it as spam or ham
+
+**17. Look into the structure of sms_freq_words. How many terms appear in at least 5 SMS messages?**
+```{r, echo = TRUE}
+sms_freq_words <- findFreqTerms(sms_dtm_train, 5)
+str(sms_freq_words)
+
+sms_dtm_freq_train<- sms_dtm_train[ , sms_freq_words];
+
+sms_dtm_freq_test <- sms_dtm_test[ , sms_freq_words];
+```
+1202 terms appear in the frequent words list
+
+```{r, echo = TRUE}
+convert_counts <- function(x) { x <- ifelse(x > 0, "Yes", "No") }
+
+sms_train <- apply(sms_dtm_freq_train, MARGIN = 2,convert_counts)
+
+sms_test <- apply(sms_dtm_freq_test, MARGIN = 2,convert_counts)
+
+```
+**18. Build the model on the sms_train matrix using the naive bayes classifier as described in the lecture slides.**
+
+```{r, echo=TRUE}
+library(e1071)
+sms_classify <- naiveBayes(sms_train, sms_train_labels)
+
+sms_predict <- predict(sms_classify, sms_test, type = "class")
+```
+
+**19. Discuss and explain the result of this crossTable.**
+```{r, echo = TRUE}
+library(gmodels)
+
+CrossTable(sms_test_labels, sms_predict, prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE, dnn = c('actual', 'predicted'))
+```
+We observe that 1086 of the 1112 test emails were correctly classified, and 26 were incorrectly classified.
+
+**20. Re-build a Naive Bayes model as done earlier, but this time set laplace = 1 by adding it to the classifier, name it sms_classifier2, and recreate the CrossTable.**
+```{r, echo = TRUE}
+sms_classifier2 <- naiveBayes(sms_train, sms_train_labels, laplace = 1)
+sms_predict2<- predict(sms_classifier2, sms_test, type = "class")
+CrossTable(sms_test_labels, sms_predict2, prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE, dnn = c('actual', 'predicted'))
+                              
+```
+**21. Did Laplace estimator improve the result of Naive Bayes classifier?**
+No improvements have been noticed, the results are identical.
+
+

@@ -1,0 +1,119 @@
+---
+title: "Lab2"
+author: "Luis J. Ramirez"
+date: "January 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Learning how to apply multiple linear regression
+
+
+1. Loading the data. Since the only string is the gender column and it is denoted m/f it is clear that m/f are factors. The same can be said abou the region and smoker status.
+```{r, cache=TRUE}
+insurance <- read.csv('C:\\Users\\LuisJ\\Dropbox\\MachineLearningR\\data sets\\insurance.csv')
+```
+2. Show the structure of the data
+```{r, echo = TRUE}
+str(insurance)
+```
+3. The only dependent variable will be the **charges** which is numerical. The independent variables will be as follows. **age**(numerical), **sex**(character), **bmi**(numerical), **children**(integer), **smoker**(character), and **region**(character). 
+
+4.We can analyze the **charges** using the the summary command.
+
+```{r, echo = TRUE}
+summary(insurance$charges)
+```
+5. We can use a boxplot and a histogram to look at the distribution of the data. We notice that the distribution is right skewed and not normally distributed
+```{r, echo = TRUE}
+boxplot(insurance$charges)
+hist(insurance$charges)
+```
+
+6. We note that **smoker**, **region**, **sex** are factors. We will look at the distribution by using histograms
+
+```{r, echo = TRUE}
+table(insurance$sex)
+table(insurance$smoker)
+table(insurance$region)
+```
+# Exploring relationships among features-correlation matrix
+
+7. Creating the correlation matrix for the four numeric values **age**,**bmi**, **children**,**charges**
+
+```{r, echo=TRUE}
+cor(insurance[c("age", "bmi", "charges")])
+```
+8. We notice that **age** and **charges** have the highest correlation coefficient. 
+
+9. To visualize the correlation between all the numerical features we use the **pairs** command:
+
+```{r, echo=TRUE}
+pairs(insurance[c("age", "bmi", "charges")])
+```
+
+
+10. We notice how **age** and **charges** are clustered in sections. 
+
+
+11. Using the more advance  **pairs.panels()** and we notice the uniform distribution for age, the normally distrubuted bmi and the right skewed charges graph.
+
+```{r, echo= TRUE}
+library(psych)
+
+pairs.panels(insurance[c("age", "bmi", "charges")])
+```
+
+12. Now we fit a linear regression using the **lm()** command
+
+```{r, echo = FALSE}
+ins_model <- lm(charges ~ age + sex + smoker + bmi + region + children, data = insurance)
+coef(ins_model)
+
+```
+13. We notice that there is a coefficient for each observation of a total of seven in addition to the intercept.
+
+14. We notice from the coefficients that the factors, **male** and **region** decrease the charges. In order of effect on charges we have, **smoker**, **bmi**, **children** and **age** increaset the charges. 
+
+15. We can summarize these results in the following way: We notice that old age, smoking and obesity tend to be linked with additional health issues. While having additional family members can increase the number of doctor visits and vaccinations and other perventative care expenses.
+
+16. We measure the performance of the model by using the summary command on the saved model.
+
+```{r, echo= TRUE}
+summary(ins_model)
+```
+17. We find that the model correlates **age**, **sex**, and **bmi** to higher expenses. It also shows that the residuals are high. 
+
+# Improving model performance
+
+We try and identify other non-linear relationships that may improve the model performance, it does not always follow that the relationships between the variables are not always linear. SO we add a new squared term. We will try this with age and test the model again.
+
+
+```{r, echo= TRUE}
+insurance$age2 = insurance$age^2
+ins2_model = lm(charges ~ age + sex + bmi + age2 + smoker + sex + children, data = insurance)
+summary(ins2_model)
+```
+
+
+We are now curious if there is only a threshold effect of BMI, we consider that BMI may only be related if BMI is over 30. This identifys if someone is obese or not obese as a factor, so we create a new variable. 
+
+```{r, echo = TRUE}
+insurance$bmi30 <- ifelse(insurance$bmi >= 30, 1, 0)
+
+expenses ~ bmi30*smoker
+expenses ~ bmi30 + smokeryes + bmi30:smokeryes
+```
+
+so, now we test these new added parameters into our model and check the summary results. We will notice that the R^2 terms have been increased. 
+
+```{r, echo= FALSE}
+ins3_model <- lm(charges ~ age + age2 + bmi + bmi30 + smoker + sex + children + bmi30*smoker, data = insurance)
+summary(ins3_model)
+```
+
+
+

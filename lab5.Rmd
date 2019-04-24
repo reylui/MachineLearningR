@@ -1,0 +1,127 @@
+---
+title: "Lab5"
+author: "Luis J. Ramirez"
+date: "February 25, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lab 5
+
+**1. Loading in the credit data**
+```{r, echo = TRUE}
+credit <- read.csv("C:/Users/LuisJ/OneDrive/Desktop/RCode/MachineLearningR/data sets/credit.csv")
+```
+
+**2. Examining the structure of the data**
+
+```{r,  echo = TRUE}
+str(credit)
+``` 
+**3. Which features can be a possible predictor of a default loan ?**
+It could be possible that employment duration, percent of income, checking balance, and months loan duration have a big impact on default loans
+
+**4. Studying the following features**
+```{r, echo = TRUE}
+# pairs(credit$checking_balance, credit$employment_duration, credit$percent_of_income, credit$credit_history, credit$months_loan_duration, credit$default)
+```
+**5. Percentage of the loans that went into default**
+
+```{r, echo = TRUE}
+prop.table(table(credit$default))
+```
+**6.Why are prior lab approaches unwise**
+
+**7. How to create a random sample in R** 
+There are additional ways to create random samples from already stored data, an example is seen in **8.**
+**8. Creating the random training and testing samples**
+
+
+```{r, echo = TRUE}
+
+set.seed(123)
+
+train_sample <- sample(1000, 900)
+
+credit_train <- credit[train_sample, ]
+credit_test <- credit[-train_sample, ]
+
+```
+
+**9. Checking if the training train/test split s fair**
+We check if the train/test split is fair to pervent training bias
+```{r, echo = TRUE}
+# train data
+prop.table(table(credit_train$default))
+#test data
+prop.table(table(credit_test$default))
+```
+
+**10. Installing the c5.0 package**
+This can be done in R-Studio enviroment or by using the following line in console
+```{r, echo = TRUE}
+#install.package(C50)
+```
+
+**11. Training the model **
+
+```{r, echo = TRUE}
+credit_model <- C50::C5.0(credit_train[-17], credit_train$default, trails = 1, costs = NULL)
+credit_predition <- predict(credit_model, credit_test[-17])
+
+summary(credit_model)
+```
+
+
+**12. We notice that if checking balance is less than 200 the loan is more likely to default, we also have ~15% error rate for type I and type II errors.**
+
+**13. The tree is printed above.**
+
+**14. - 16.** 
+```{r, echo = TRUE}
+#Evaluating model performance
+
+library(caret)
+library(e1071)
+confusionMatrix(credit_predition, credit_test$default, dnn = c("Predicted", "Actual"))
+```
+**17. - 18. Improving the model using adaptive boosting**
+
+```{r, echo = TRUE}
+credit_boost10 <- C50::C5.0(credit_train[-17], credit_train$default, trails = 10, costs = NULL)
+credit_boost10_pred <- predict(credit_boost10, credit_test[-17])
+
+#summary(credit_boost10)
+
+confusionMatrix(credit_boost10_pred, credit_test$default, dnn = c("Predicted", "Actual"))
+```
+
+**19. - 20. Cost matrix, we add a penalty for a type or error. When a the interest gained is better that the risk of giving out a loan, we actually want the loan. We notice that the accuracy decreased**
+```{r, echo = TRUE}
+matrix_dim <- list(c("no","yes"), c("no","yes"))
+names(matrix_dim) <- c("predicted", "actual")
+matrix_dim
+
+# we suppose that a loan default cost the bank four times  as a missed oppurtunity
+
+error_cost <- matrix (c(0,1,4,0), nrow = 2, dimnames = matrix_dim)
+
+error_cost
+```
+
+```{r, echo = TRUE}
+credit_boost10_err <- C50::C5.0(credit_train[-17], credit_train$default, trails = 10, costs = error_cost)
+credit_boost10_err_pred <- predict(credit_boost10_err, credit_test[-17])
+
+#summary(credit_boost10)
+
+confusionMatrix(credit_boost10_err_pred, credit_test$default, dnn = c("Predicted", "Actual"))
+```
+
+
+
+
+

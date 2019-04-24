@@ -1,0 +1,101 @@
+---
+title: "Lab6"
+author: "Luis J. Ramirez"
+date: "March 4, 2019"
+output: html_document
+---
+
+### Bagging
+1.Importing and reading the data, also loading the caret package.
+```{r, echo = TRUE}
+
+library(caret)
+
+credit <- read.csv("C:/Users/LuisJ/OneDrive/Desktop/RCode/MachineLearningR/data sets/credit.csv")
+
+```
+2. Training with the **treebag** method. 
+```{r, echo = TRUE}
+
+set.seed(300)
+
+train_sample <- sample(1000, 900)
+
+credit_train <- credit[train_sample, ]
+credit_test <- credit[-train_sample, ]
+
+mybag <- train(default~., data = credit_train, method = "treebag")
+
+#summary(mybag)
+
+confusionMatrix(mybag)
+```
+
+3. Predicting and training data and displaying the confusion matrix. 
+```{r, echo = TRUE}
+mybag_predict <- predict(mybag, credit_test[-17])
+
+confusionMatrix(mybag_predict, credit_test$default, dnn = c("predicted", "actual"))
+```
+We note that the accuracy is .65
+
+4. Using 10 cross validation with "tree bag", first we define the Ctrl parameters, 
+
+```{r, echo = TRUE}
+ctrl1 <- trainControl(method = "repeatedcv", repeats = 3) # the default for k-folds is 10
+
+
+mybag_10 <- train(default~., data = credit_train, method = "treebag", trControl = ctrl1)
+
+mybag_10
+
+```
+
+The results show improved accuracy with 10 fold, now we use the testing data, 
+
+
+```{r, echo = TRUE}
+mybag10_predict <- predict(mybag_10, credit_test[-17])
+
+confusionMatrix(mybag10_predict, credit_test$default, dnn = c("predicted", "actual"))
+```
+We have increased the accuracy of the classification, more specifically we decreased type II errors using this model trained by 10 fold validation. 
+
+### Random Forest
+
+5. Load the randomForest package. 
+
+We will train a model using the credit data and random forest. 
+
+```{r, echo = TRUE}
+library(randomForest)
+
+myrf <- randomForest(default~., data = credit, importance = TRUE)
+
+myrf
+
+myrf_predict <- predict(myrf, credit_test[-17])
+
+confusionMatrix(myrf_predict, credit_test$default, dnn = c("predicted", "actual"))
+
+```
+The accuracy of this model is perfect, and out performs the previous bagging and tree building methods. Lets look at how each factored is weighed in terms of importance. 
+
+```{r, echo = TRUE}
+myrf$importance
+```
+We notice that checking balance and months_loan_duration are highly weigthed in terms of improtance as compared to the rest of the terms. 
+
+8. Using a training grid and cross validation to improve the results, we will set up most of it and finish it later, the only thing that is missing is the tunning grid
+
+
+```{r, echo = TRUE}
+
+ctrl2 <- trainControl(method = "repeatedcv", repeats = 5, number = 10)
+rf10 = train(default~., data = credit_train, method = "rf", trControl = ctrl2)
+
+rf10_predict <- predict(rf10, credit_test[-17])
+
+confusionMatrix(rf10_predict, credit_test$default, dnn = c("predicted", "actual"))
+
+```
